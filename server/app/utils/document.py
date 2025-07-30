@@ -1,61 +1,93 @@
-from app.utils.file_processor import process_pdf, download_pdf
-from app.utils.cloudinary import upload_to_cloudinary
 from app.database.mongo import MongoDB
-from app.database.pinecone_utils import embeddings, store_vectors
+from app.database.pinecone_utils import embeddings, index
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_pinecone import PineconeVectorStore
 import uuid
 import os
+import requests
+import tempfile
 
-def upload_pdf_util(file_path: str, user_id: str) -> dict:
-    """Upload and process PDF document, handle embedding errors gracefully."""
-    chunks = process_pdf(file_path)
+async def upload_pdf_util(file_path: str, user_id: str) -> dict:
     doc_id = str(uuid.uuid4())
-    vectors = []
-
-    # Upload to Cloudinary
-    public_id = f"user_{user_id}/{os.path.basename(file_path)}"
-    cloudinary_res = upload_to_cloudinary(file_path, public_id)
-
-    # Store in MongoDB (initially mark as 'processing')
-    MongoDB.insert_document({
-        "user_id": user_id,
-        "doc_id": doc_id,
-        "url": cloudinary_res["secure_url"],
-        "public_id": cloudinary_res["public_id"],
-        "embedding_status": "processing"
-    })
-
-    embedding_error = None
     try:
-        # Generate vectors
-        for i, chunk in enumerate(chunks):
-            vector = embeddings.embed_query(chunk)
-            vectors.append((f"{doc_id}_{i}", vector, {
-                "text": chunk,
-                "user_id": user_id,
-                "document_id": doc_id,
-                "page": i+1
-            }))
-        # Store in Pinecone
-        store_vectors(vectors)
-        # Update status to 'complete'
-        if hasattr(MongoDB, 'update_document_status'):
-            MongoDB.update_document_status(doc_id, "complete")
+        # Pinecone pipeline
+        vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+        loader = PyPDFLoader(file_path)
+        pages = []
+        async for page in loader.alazy_load():
+            pages.append(page)
+        docs = loader.load()
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200
+        )
+        docs = splitter.split_documents(docs)
+        # Store the actual text and correct user_id in metadata for each chunk
+        for doc in docs:
+            doc.metadata["text"] = doc.page_content
+            doc.metadata["user_id"] = user_id  # Ensure user_id is present and correct
+            doc.metadata["doc_id"] = doc_id
+        vector_store.add_documents(docs)
+        MongoDB.insert_document({
+            "user_id": user_id,
+            "doc_id": doc_id,
+            "embedding_status": "complete"
+        })
+        return {"status": "success", "document_id": doc_id}
     except Exception as e:
-        embedding_error = str(e)
-        # Update status to 'embedding_failed'
-        if hasattr(MongoDB, 'update_document_status'):
-            MongoDB.update_document_status(doc_id, "embedding_failed")
+        MongoDB.insert_document({
+            "user_id": user_id,
+            "doc_id": doc_id,
+            "embedding_status": "failed",
+            "error": str(e)
+        })
+        return {"status": "error", "message": str(e)}
 
-    result = {
-        "status": "success" if not embedding_error else "partial_success",
-        "document_id": doc_id,
-        "embedding_error": embedding_error
-    }
-    return result
+def download_pdf(url: str) -> str:
+    response = requests.get(url)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        tmp_file.write(response.content)
+        return tmp_file.name
 
 def url_upload_util(url: str, user_id: str) -> dict:
-    """Download and process PDF from URL"""
     file_path = download_pdf(url)
-    result = upload_pdf_util(file_path, user_id)
-    os.unlink(file_path)
-    return result
+    doc_id = str(uuid.uuid4())
+    try:
+        # Pinecone pipeline
+        vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+        loader = PyPDFLoader(file_path)
+        pages = []
+        for page in loader.load():
+            pages.append(page)
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200
+        )
+        docs = splitter.split_documents(pages)
+        # Store the actual text and correct user_id in metadata for each chunk
+        for doc in docs:
+            doc.metadata["text"] = doc.page_content
+            doc.metadata["user_id"] = user_id  # Ensure user_id is present and correct
+            doc.metadata["doc_id"] = doc_id
+        vector_store.add_documents(docs)
+        MongoDB.insert_document({
+            "user_id": user_id,
+            "doc_id": doc_id,
+            "url": url,
+            "public_id": None,
+            "embedding_status": "complete"
+        })
+        return {"status": "success", "document_id": doc_id}
+    except Exception as e:
+        MongoDB.insert_document({
+            "user_id": user_id,
+            "doc_id": doc_id,
+            "url": url,
+            "public_id": None,
+            "embedding_status": "failed",
+            "error": str(e)
+        })
+        return {"status": "error", "message": str(e)}
+    finally:
+        os.unlink(file_path)

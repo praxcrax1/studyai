@@ -1,5 +1,5 @@
 from langchain.tools import tool
-from app.database.pinecone_utils import query_vectors, embeddings
+from app.database.pinecone_utils import embeddings, index
 
 @tool
 def rag_retriever(query: str, user_id: str, document_ids: list=None) -> str:
@@ -8,6 +8,10 @@ def rag_retriever(query: str, user_id: str, document_ids: list=None) -> str:
     filters = {"user_id": user_id}
     if document_ids:
         filters["document_id"] = {"$in": document_ids}
-    
-    results = query_vectors(vector, filters)
+    results = index.query(
+        vector=vector,
+        filter=filters,
+        top_k=5,
+        include_metadata=True
+    )
     return "\n\n".join([match.metadata["text"] for match in results.matches])

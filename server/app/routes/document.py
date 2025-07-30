@@ -26,7 +26,7 @@ async def upload_document(
             tmp.write(content)
             tmp_path = tmp.name
         
-        result = upload_pdf_util(tmp_path, user_id)
+        result = await upload_pdf_util(tmp_path, user_id)
         os.unlink(tmp_path)
         return result
     except Exception as e:

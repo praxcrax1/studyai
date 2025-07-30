@@ -13,19 +13,19 @@ async def chat_query(
     try:
         # Retrieve chat history
         history = MongoDB.get_chat_history(user_id)
-        
+
         # Create agent with memory
         agent = create_agent(user_id, history)
-        
+
         # Process query
         response = agent.invoke({"input": query})
-        
+
         # Update history
         MongoDB.update_chat_history(user_id, {
             "human": query,
-            "ai": response["output"]
+            "ai": response.get("output", "")
         })
-        
-        return {"response": response["output"]}
+
+        return {"response": response.get("output", "")}
     except Exception as e:
         return {"error": str(e)}

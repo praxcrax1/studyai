@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from app.core.config import settings
+from app.config import settings
 from bson import ObjectId
 
 client = MongoClient(settings.MONGO_URI)
@@ -17,10 +17,6 @@ class MongoDB:
     @staticmethod
     def insert_document(doc_data: dict) -> str:
         return db.documents.insert_one(doc_data).inserted_id
-    
-    @staticmethod
-    def get_document(document_id: str) -> dict:
-        return db.documents.find_one({"_id": ObjectId(document_id)})
     
     @staticmethod
     def get_documents(user_id: str) -> list:

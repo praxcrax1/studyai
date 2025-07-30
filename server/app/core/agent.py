@@ -4,7 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import Tool
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from app.core.tools import rag_retriever
-from app.core.config import settings
+from app.config import settings
 
 def create_agent(user_id: str, chat_history=None):
     chat_history = chat_history or []

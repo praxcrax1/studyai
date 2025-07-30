@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Body
-from app.auth.auth_bearer import JWTBearer
-from app.core.agent_setup import create_agent
+from app.auth.bearer import JWTBearer
+from app.core.agent import create_agent
 from app.database.mongo import MongoDB
 
 router = APIRouter()

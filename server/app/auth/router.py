@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.auth.auth_handler import create_access_token
+from app.auth.handler import create_access_token
 from app.database.mongo import MongoDB
 from passlib.context import CryptContext
 

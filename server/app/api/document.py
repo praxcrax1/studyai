@@ -1,20 +1,10 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from app.auth.bearer import JWTBearer
-from app.utils.file_processor import process_pdf
-from app.utils.document import upload_pdf_util, url_upload_util
-from app.database.mongo import MongoDB
+from server.app.auth.bearer import JWTBearer
+from app.services.document_service import DocumentService
 import tempfile
 import os
-from bson import ObjectId
 
 router = APIRouter()
-
-def serialize_doc(doc):
-    doc = dict(doc)
-    for k, v in doc.items():
-        if isinstance(v, ObjectId):
-            doc[k] = str(v)
-    return doc
 
 @router.post("/upload")
 async def upload_document(
@@ -26,8 +16,7 @@ async def upload_document(
             content = await file.read()
             tmp.write(content)
             tmp_path = tmp.name
-        
-        result = upload_pdf_util(tmp_path, user_id)
+        result = DocumentService.upload_document(tmp_path, user_id)
         os.unlink(tmp_path)
         return result
     except Exception as e:
@@ -39,13 +28,10 @@ async def upload_from_url(
     user_id: str = Depends(JWTBearer())
 ):
     try:
-        return url_upload_util(url, user_id)
+        return DocumentService.upload_from_url(url, user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/documents")
 async def get_documents(user_id: str = Depends(JWTBearer())):
-    docs = MongoDB.get_documents(user_id)
-    docs = [serialize_doc(doc) for doc in docs] if docs else []
-    return docs
+    return DocumentService.get_documents(user_id)

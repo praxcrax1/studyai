@@ -1,4 +1,4 @@
-from app.core.config import settings
+from app.config import settings
 from pinecone import Pinecone
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 

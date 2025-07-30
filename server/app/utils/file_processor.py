@@ -1,8 +1,7 @@
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import requests
 import tempfile
-import os
 
 def process_pdf(file_path: str, chunk_size: int=1000, chunk_overlap: int=200) -> list:
     reader = PdfReader(file_path)

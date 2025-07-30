@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.auth.auth_bearer import JWTBearer
 from app.utils.file_processor import process_pdf
-from app.core.tools import upload_pdf_tool, url_upload_tool
-from app.database.mongo_crud import MongoDB
+from app.utils.document_utils import upload_pdf_util, url_upload_util
+from app.database.mongo import MongoDB
 import tempfile
 import os
 from bson import ObjectId
@@ -27,7 +27,7 @@ async def upload_document(
             tmp.write(content)
             tmp_path = tmp.name
         
-        result = upload_pdf_tool.invoke({"file_path": tmp_path, "user_id": user_id})
+        result = upload_pdf_util(tmp_path, user_id)
         os.unlink(tmp_path)
         return result
     except Exception as e:
@@ -39,7 +39,7 @@ async def upload_from_url(
     user_id: str = Depends(JWTBearer())
 ):
     try:
-        return url_upload_tool.invoke({"url": url, "user_id": user_id})
+        return url_upload_util(url, user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

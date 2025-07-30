@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.auth.auth_handler import create_access_token
-from app.database.mongo_crud import MongoDB
+from app.database.mongo import MongoDB
 from passlib.context import CryptContext
 
 router = APIRouter()

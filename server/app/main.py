@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from app.routes import document, chat
 from app.auth import auth_router
-from app.database.mongo_crud import MongoDB
 import uvicorn
 
 app = FastAPI()

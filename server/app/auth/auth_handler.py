@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import jwt
+from jose import jwt
 from app.core.config import settings
 
 def create_access_token(user_id: str) -> str:

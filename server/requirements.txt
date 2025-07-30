@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-dotenv
+pymongo
+pinecone
+langchain
+langchain-google-genai
+langchain-community
+pypdf2
+cloudinary
+requests
+passlib
+python-jose
+pydantic
+python-multipart

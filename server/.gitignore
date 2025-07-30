@@ -1,0 +1,48 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# --- Virtual Environment ---
+venv/
+env/
+ENV/
+.venv/
+.python-version
+
+# --- FastAPI/UVicorn ---
+*.log
+instance/
+*.db
+*.sqlite3
+
+# --- Pytest & Coverage ---
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# --- Editors & OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# --- Environment & Config ---
+.env
+.env.*
+*.ini
+*.cfg
+*.toml
+*.json
+
+# --- Build ---
+build/
+dist/
+*.egg-info/

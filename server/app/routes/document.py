@@ -1,6 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.auth.bearer import JWTBearer
-from app.utils.file_processor import process_pdf
 from app.utils.document import upload_pdf_util, url_upload_util
 from app.database.mongo import MongoDB
 import tempfile

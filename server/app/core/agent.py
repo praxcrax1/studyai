@@ -39,5 +39,5 @@ def create_agent(user_id: str, chat_history=None):
     ])
 
     agent = create_tool_calling_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=False)
+    executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True)
     return executor

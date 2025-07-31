@@ -19,6 +19,7 @@ def create_agent(user_id=None, doc_ids=None):
     # Tool wrapper to inject user_id and doc_ids into search
     def search_documents_user(query: str):
         inputs = {"query": query, "user_id": user_id}
+        # If doc_ids are provided, the agent MUST search these specific documents
         if doc_ids:
             inputs["doc_ids"] = doc_ids
         return search_documents.invoke(inputs)
@@ -53,6 +54,8 @@ def create_agent(user_id=None, doc_ids=None):
         (
             "system",
             f"""You are an advanced AI research assistant with sophisticated reasoning capabilities. Your goal is to provide the most accurate, helpful, and comprehensive responses possible through intelligent tool usage and multi-step reasoning.
+
+            **IMPORTANT:** If `doc_ids` are provided, you MUST search these specific documents. Do not answer from general knowledge or other sources unless you have searched these documents first.
 
             **CORE REASONING FRAMEWORK:**
             You must think strategically about each query and follow this decision tree:

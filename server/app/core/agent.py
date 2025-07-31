@@ -44,11 +44,26 @@ def create_agent(user_id=None):
     )
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant. Use tools if needed."),
-        ("placeholder", "{chat_history}"),
-        ("human", "{input}"),
-        MessagesPlaceholder("agent_scratchpad")
+    (
+        "system",
+            """You are an intelligent, thoughtful AI assistant that can reason step-by-step to provide helpful, accurate answers.
+
+        You have access to external tools, such as a document retriever, which can provide detailed or user-specific information.
+
+        Before responding:
+        - **Think carefully and reason step-by-step** about the user's question.
+        - **Determine whether you need to use a tool** to retrieve external information (e.g., documents, user-specific context).
+        - Use the **RAGRetriever** tool when the question requires up-to-date, factual, or document-based content.
+        - If you can answer confidently with your internal knowledge, proceed without tools.
+        - Always make your final answer clear, concise, and helpful.
+
+        Your priority is to **think first**, **use tools only when needed**, and **answer with clarity and relevance**."""
+            ),
+            ("placeholder", "{chat_history}"),
+            ("human", "{input}"),
+            MessagesPlaceholder("agent_scratchpad")
     ])
+
 
     # Build agent
     agent = create_tool_calling_agent(llm_with_tools, tools, prompt=prompt)

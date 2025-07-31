@@ -23,6 +23,7 @@ def create_agent(user_id=None, doc_ids=None):
             inputs["doc_ids"] = doc_ids
         return search_documents.invoke(inputs)
 
+    # Define tools available to the agent
     tools = [
         Tool(
             name="search_documents",
@@ -81,6 +82,12 @@ def create_agent(user_id=None, doc_ids=None):
             - If documents contradict your knowledge, acknowledge this and explain
             - Always aim for the most complete and accurate response possible
 
+            **CHAT HISTORY CONTEXT:**
+            You have access to previous interactions with the user through `chat_history`. 
+            - Use it to maintain context, recall past user questions, and avoid repeating previous information.
+            - Incorporate relevant insights from past turns when forming new responses.
+            - If the current query builds on previous ones, integrate that context into your reasoning and searches.
+
             **RESPONSE QUALITY STANDARDS:**
             - **Format:** Always use clear Markdown formatting with headers, bullet points, code blocks, and proper structure
             - **Transparency:** When using documents, briefly mention the source context
@@ -90,7 +97,7 @@ def create_agent(user_id=None, doc_ids=None):
 
             **ADVANCED BEHAVIORS:**
             - **Follow-up reasoning:** After getting search results, determine if additional searches would help
-            - **Context awareness:** Use conversation history to inform your search strategy
+            - **Context awareness:** Use conversation history (`chat_history`) to inform your search strategy
             - **Quality assessment:** Evaluate if search results actually answer the user's question
             - **Adaptive strategy:** Adjust approach based on what type of documents/information you're working with
 

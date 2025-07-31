@@ -1,3 +1,4 @@
+# FastAPI routes for document upload, URL upload, listing, and deletion
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from app.auth.bearer import JWTBearer
 from app.utils.document import process_pdf_background, delete_document_util, download_pdf_async
@@ -13,6 +14,7 @@ from bson import ObjectId
 router = APIRouter()
 
 def serialize_doc(doc):
+    # Convert ObjectId fields to strings for JSON serialization
     doc = dict(doc)
     for k, v in doc.items():
         if isinstance(v, ObjectId):
@@ -25,11 +27,12 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     user_id: str = Depends(JWTBearer())
 ):
+    # Handle PDF upload, save to temp, and queue background processing
     doc_id = str(uuid.uuid4())
     tmp_path = f"/tmp/{doc_id}.pdf"
     file_name = file.filename or f"upload_{doc_id}.pdf"
 
-    # Stream write
+    # Stream write file to disk
     async with aiofiles.open(tmp_path, "wb") as f:
         while chunk := await file.read(1024 * 1024):  # 1MB chunks
             await f.write(chunk)
@@ -66,7 +69,7 @@ async def upload_from_url(
             "embedding_status": "pending"
         })
 
-        # Sync wrapper for BackgroundTasks
+        # Sync wrapper for BackgroundTasks to run async download and processing
         def download_and_process():
             # Run async download + processing inside thread-safe loop
             asyncio.run(_download_and_process(url, user_id, doc_id, file_name))
@@ -76,6 +79,7 @@ async def upload_from_url(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Helper for background download and processing
 async def _download_and_process(url: str, user_id: str, doc_id: str, file_name: str):
     tmp_path = await download_pdf_async(url)
     await process_pdf_background(tmp_path, user_id, doc_id, file_name)

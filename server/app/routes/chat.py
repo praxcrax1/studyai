@@ -10,14 +10,12 @@ async def chat_query(
     query: str = Body(..., embed=True),
     user_id: str = Depends(JWTBearer())
 ):
-    try:
+    try:    
         agent = create_agent(user_id=user_id)
 
-        input_message = {"role": "user", "content": query}
-
-        response = agent.invoke({
-            "messages": [input_message],
-        })
+        response = agent.invoke(
+            {"input": query}
+        )
 
         for message in response.get("messages", []):
             if hasattr(message, "pretty_print"):

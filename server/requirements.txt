@@ -2,12 +2,12 @@ fastapi
 uvicorn
 python-dotenv
 pymongo
-pinecone
+langchain_pinecone
+langchain_mongodb
 langchain
 langchain-google-genai
 langchain-community
-pypdf2
-cloudinary
+pypdf
 requests
 passlib
 python-jose

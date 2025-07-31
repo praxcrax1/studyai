@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.auth.bearer import JWTBearer
-from app.utils.document import upload_pdf_util, url_upload_util
+from app.utils.document import upload_pdf_util, url_upload_util, delete_document_util
 from app.database.mongo import MongoDB
 from urllib.parse import urlparse
 import tempfile
@@ -55,3 +55,13 @@ async def get_documents(user_id: str = Depends(JWTBearer())):
     docs = MongoDB.get_documents(user_id)
     docs = [serialize_doc(doc) for doc in docs] if docs else []
     return docs
+
+@router.delete("/document/{doc_id}")
+async def delete_document(doc_id: str, user_id: str = Depends(JWTBearer())):
+    try:
+        result = await delete_document_util(doc_id, user_id)
+        if not result["success"]:
+            raise HTTPException(status_code=404, detail=result["message"])
+        return {"status": "success", "message": "Document deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

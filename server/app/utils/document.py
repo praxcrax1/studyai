@@ -1,6 +1,7 @@
 from app.database.mongo import MongoDB
 from app.database.pinecone_utils import embeddings, index
 from langchain_community.document_loaders import PyPDFLoader
+from app.database.mongo import db
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeVectorStore
 import uuid
@@ -105,3 +106,17 @@ def url_upload_util(url: str, user_id: str, file_name: str) -> dict:
         return {"status": "error", "message": str(e)}
     finally:
         os.unlink(file_path)
+
+async def delete_document_util(doc_id: str, user_id: str) -> dict:
+    try:
+        # Remove from MongoDB
+        result = db.documents.delete_one({"doc_id": doc_id, "user_id": user_id})
+        if result.deleted_count == 0:
+            return {"success": False, "message": "Document not found or not authorized"}
+
+        # Remove from Pinecone
+        vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+        vector_store.delete(filter={"doc_id": doc_id})
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}

@@ -1,8 +1,7 @@
 from langchain.agents import AgentExecutor, Tool, create_tool_calling_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
-from app.core.tools import rag_retriever
+from app.core.tools import search_documents
 from app.config import settings
-from langgraph.prebuilt import create_react_agent
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -16,13 +15,13 @@ def create_agent(user_id=None):
         temperature=0.3
     )
 
-    def rag_retriever_with_user(query: str):
-        return rag_retriever.invoke({"query": query, "user_id": user_id})
+    def search_documents_user(query: str):
+        return search_documents.invoke({"query": query, "user_id": user_id})
 
     tools = [
         Tool(
-            name="RAGRetriever",
-            func=rag_retriever_with_user,
+            name="search_documents",
+            func=search_documents_user,
             description="Retrieve relevant document chunks based on user query."
         )
     ]
@@ -53,7 +52,7 @@ def create_agent(user_id=None):
         Before responding:
         - **Think carefully and reason step-by-step** about the user's question.
         - **Determine whether you need to use a tool** to retrieve external information (e.g., documents, user-specific context).
-        - Use the **RAGRetriever** tool when the question requires up-to-date, factual, or document-based content.
+        - Use the **search_documents** tool when the question requires up-to-date, factual, or document-based content.
         - If you can answer confidently with your internal knowledge, proceed without tools.
         - Always make your final answer clear, concise, and helpful.
 

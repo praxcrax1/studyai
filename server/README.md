@@ -1,6 +1,33 @@
-# RMGX Assignment Backend API Documentation
+# RMGX Assignment: AI-Powered Document Chat & Retrieval System
 
-This backend provides a document management and chat system with authentication, document upload, retrieval, deletion, and chat/querying capabilities. Use this documentation to build a frontend that interacts with the API.
+This project is a full-stack application that enables users to upload, manage, and chat with their documents using an advanced AI agent. The backend is built with FastAPI and integrates with MongoDB and Pinecone for storage and vector search. The AI agent (powered by Gemini) intelligently decides whether to answer from its own knowledge or to retrieve relevant information from your uploaded documents, providing step-by-step reasoning and transparent answers.
+
+## Key Features
+
+- **User Authentication:** Secure registration and login with JWT-based authentication.
+- **Document Management:** Upload PDF documents (via file or URL), view all your documents, and delete them as needed.
+- **AI Chat Agent:** Ask questions in natural language. The agent will:
+  - Analyze your query and decide if it needs to search your documents or can answer directly.
+  - Retrieve and synthesize relevant information from your documents using semantic search (Pinecone).
+  - Provide clear, well-structured answers with reasoning, context, and references.
+- **Chat History:** All conversations are stored and can be deleted or retrieved by the user.
+- **Frontend Ready:** Designed for easy integration with a modern frontend (see API docs below).
+
+## How It Works
+
+1. **Upload Documents:** Users can upload PDFs either from their device or by providing a direct URL.
+2. **Ask Questions:** Users interact with the AI agent via a chat interface. The agent uses advanced reasoning to decide:
+   - Should it answer from its own knowledge?
+   - Should it search the user's documents for evidence?
+   - Should it combine both?
+3. **Get Answers:** The agent responds in Markdown, with clear structure, references, and transparency about its sources.
+4. **Manage Data:** Users can view, delete, and manage both their documents and chat history.
+
+---
+
+# API Documentation
+
+This backend provides a document management and chat system with authentication, document upload, retrieval, deletion, and chat/querying capabilities.
 
 ## Base URL
 
@@ -100,38 +127,3 @@ Assume the backend is running at: `http://localhost:8000`
     }
   }
   ```
-
----
-
-## General Notes for Frontend
-
-- All endpoints except `/auth/register` and `/auth/login` require authentication.
-- Use the JWT token in the `Authorization` header for all requests after login/register.
-- Document upload supports both file and URL (PDF only).
-- The chat endpoint can optionally restrict the query to specific documents by passing their IDs.
-- Deleting a document removes it from both the database and the vector store.
-- Document list includes metadata such as file name and status.
-
----
-
-## Example Usage Flow
-
-1. **Register/Login** to get a token.
-2. **Upload** documents (file or URL).
-3. **List** all your documents.
-4. **Chat** with the system, optionally specifying which documents to use.
-5. **Delete** documents as needed.
-
----
-
-## Suggested Frontend Features
-
-- Login/Register page
-- Document dashboard (list, upload, delete)
-- Chat interface (with optional document selection)
-- File upload and URL input for new documents
-- Status/error handling for all API calls
-
----
-
-For any questions about API usage, refer to this README or inspect the backend code for details on request/response formats.

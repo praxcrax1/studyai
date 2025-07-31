@@ -144,6 +144,7 @@ export function ChatInterface({ token, selectedDocuments, onClearChat }: ChatInt
 
       if (selectedDocuments.length > 0) {
         requestBody.doc_ids = selectedDocuments
+        requestBody.query += "\nSTRICTLY USE SEARCH DOCUMENT TOOL"
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/query`, {

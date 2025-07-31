@@ -67,6 +67,6 @@ def create_agent(user_id=None):
 
     # Build agent
     agent = create_tool_calling_agent(llm_with_tools, tools, prompt=prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=False, return_intermediate_steps=True)
 
     return agent_executor

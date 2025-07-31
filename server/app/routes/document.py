@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.auth.bearer import JWTBearer
 from app.utils.document import upload_pdf_util, url_upload_util
 from app.database.mongo import MongoDB
+from urllib.parse import urlparse
 import tempfile
 import os
 from bson import ObjectId
@@ -26,7 +27,7 @@ async def upload_document(
             tmp.write(content)
             tmp_path = tmp.name
         
-        result = await upload_pdf_util(tmp_path, user_id)
+        result = await upload_pdf_util(tmp_path, user_id, file_name=file.filename)
         os.unlink(tmp_path)
         return result
     except Exception as e:
@@ -38,7 +39,13 @@ async def upload_from_url(
     user_id: str = Depends(JWTBearer())
 ):
     try:
-        return url_upload_util(url, user_id)
+        parsed_url = urlparse(url)
+        file_name = os.path.basename(parsed_url.path)
+        
+        if not file_name or not file_name.lower().endswith(".pdf"):
+            raise ValueError("URL does not point to a valid PDF file")
+
+        return url_upload_util(url, user_id, file_name=file_name)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

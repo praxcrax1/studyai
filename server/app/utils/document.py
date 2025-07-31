@@ -8,83 +8,97 @@ import os
 import requests
 import tempfile
 
-async def upload_pdf_util(file_path: str, user_id: str) -> dict:
+async def upload_pdf_util(file_path: str, user_id: str, file_name: str) -> dict:
     doc_id = str(uuid.uuid4())
     try:
-        # Pinecone pipeline
+        # Pinecone setup
         vector_store = PineconeVectorStore(index=index, embedding=embeddings)
         loader = PyPDFLoader(file_path)
-        pages = []
-        async for page in loader.alazy_load():
-            pages.append(page)
         docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
+
+        # Split into chunks
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(docs)
-        # Store the actual text and correct user_id in metadata for each chunk
+
+        # Add proper metadata
         for doc in docs:
-            doc.metadata["text"] = doc.page_content
-            doc.metadata["user_id"] = user_id  # Ensure user_id is present and correct
-            doc.metadata["doc_id"] = doc_id
+            doc.metadata.update({
+                "text": doc.page_content,
+                "user_id": user_id,
+                "doc_id": doc_id,
+                "source": file_name,
+                "page": doc.metadata.get("page", None) + 1
+            })
+
+        # Upsert into Pinecone
         vector_store.add_documents(docs)
+
+        # Log in MongoDB
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
+            "file_name": file_name,
             "embedding_status": "complete"
         })
+
         return {"status": "success", "document_id": doc_id}
+
     except Exception as e:
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
+            "file_name": file_name,
             "embedding_status": "failed",
             "error": str(e)
         })
         return {"status": "error", "message": str(e)}
 
+
 def download_pdf(url: str) -> str:
     response = requests.get(url)
+    response.raise_for_status()
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(response.content)
         return tmp_file.name
 
-def url_upload_util(url: str, user_id: str) -> dict:
+
+def url_upload_util(url: str, user_id: str, file_name: str) -> dict:
     file_path = download_pdf(url)
     doc_id = str(uuid.uuid4())
     try:
-        # Pinecone pipeline
         vector_store = PineconeVectorStore(index=index, embedding=embeddings)
         loader = PyPDFLoader(file_path)
-        pages = []
-        for page in loader.load():
-            pages.append(page)
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-        docs = splitter.split_documents(pages)
-        # Store the actual text and correct user_id in metadata for each chunk
+        docs = loader.load()
+
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        docs = splitter.split_documents(docs)
+
         for doc in docs:
-            doc.metadata["text"] = doc.page_content
-            doc.metadata["user_id"] = user_id  # Ensure user_id is present and correct
-            doc.metadata["doc_id"] = doc_id
+            doc.metadata.update({
+                "text": doc.page_content,
+                "user_id": user_id,
+                "doc_id": doc_id,
+                "source": file_name,
+                "page": doc.metadata.get("page", None)
+            })
+
         vector_store.add_documents(docs)
+
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
             "url": url,
-            "public_id": None,
+            "file_name": file_name,
             "embedding_status": "complete"
         })
         return {"status": "success", "document_id": doc_id}
+
     except Exception as e:
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
             "url": url,
-            "public_id": None,
+            "file_name": file_name,
             "embedding_status": "failed",
             "error": str(e)
         })

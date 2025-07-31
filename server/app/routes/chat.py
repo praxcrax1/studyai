@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Body
 from app.auth.bearer import JWTBearer
 from app.core.agent import create_agent
-from app.database.mongo import MongoDB
 
 router = APIRouter()
 
@@ -10,17 +9,22 @@ async def chat_query(
     query: str = Body(..., embed=True),
     user_id: str = Depends(JWTBearer())
 ):
-    try:    
+    try:
+
         agent = create_agent(user_id=user_id)
+        response = agent.invoke({"input": query})
 
-        response = agent.invoke(
-            {"input": query}
-        )
+        answer = response.get("output")
+        tool_calls = []
 
-        for message in response.get("messages", []):
-            if hasattr(message, "pretty_print"):
-                message.pretty_print()
+        for idx, (action) in enumerate(response.get("intermediate_steps", [])):
+            tool_calls.append({"tool": action.tool, "input": action.tool_input})
 
-        return {"response": response}
+        return {
+            "response": {
+                "answer": answer,
+                "tool_calls": tool_calls
+            }
+        }
     except Exception as e:
         return {"error": str(e)}

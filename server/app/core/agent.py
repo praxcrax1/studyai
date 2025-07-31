@@ -56,6 +56,8 @@ def create_agent(user_id=None):
         - If you can answer confidently with your internal knowledge, proceed without tools.
         - Always make your final answer clear, concise, and helpful.
 
+        Always respond in Markdown format. Structure your answers with clear titles, subtitles, bullet points, and numbered lists where appropriate. Use code blocks for code, and ensure all information is well-organized and easy to read.
+
         Your priority is to **think first**, **use tools only when needed**, and **answer with clarity and relevance**."""
             ),
             ("placeholder", "{chat_history}"),

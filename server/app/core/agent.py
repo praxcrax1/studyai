@@ -1,3 +1,4 @@
+# Agent creation logic for conversational AI with document search and MongoDB-backed memory
 from langchain.agents import AgentExecutor, Tool, create_tool_calling_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.tools import search_documents
@@ -8,13 +9,14 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 
 def create_agent(user_id=None, doc_ids=None):
-    # LLM
+    # Initialize the language model (LLM)
     model = ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL,
         google_api_key=settings.GEMINI_API_KEY,
         temperature=0.3
     )
 
+    # Tool wrapper to inject user_id and doc_ids into search
     def search_documents_user(query: str):
         inputs = {"query": query, "user_id": user_id}
         if doc_ids:
@@ -31,7 +33,7 @@ def create_agent(user_id=None, doc_ids=None):
 
     llm_with_tools = model.bind_tools(tools)
 
-    # MongoDB-backed memory
+    # Set up MongoDB-backed conversation memory
     message_history = MongoDBChatMessageHistory(
         connection_string=settings.MONGO_URI,
         session_id=str(user_id),
@@ -45,6 +47,7 @@ def create_agent(user_id=None, doc_ids=None):
         return_messages=True
     )
 
+    # Prompt template for agent reasoning and response formatting
     prompt = ChatPromptTemplate.from_messages([
         (
             "system",
@@ -104,7 +107,7 @@ def create_agent(user_id=None, doc_ids=None):
         MessagesPlaceholder("agent_scratchpad")
     ])
 
-    # Build agent
+    # Build and return the agent executor
     agent = create_tool_calling_agent(llm_with_tools, tools, prompt=prompt)
     agent_executor = AgentExecutor(
         agent=agent, 

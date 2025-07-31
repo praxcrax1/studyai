@@ -1,3 +1,4 @@
+# Tool for searching relevant document chunks using Pinecone and user context
 from typing import Annotated, Optional
 from langchain.tools import tool
 from langchain_core.tools import InjectedToolArg
@@ -11,19 +12,19 @@ def search_documents(
 ) -> str:
     """Retrieve relevant document chunks based on user query."""
 
-    # Embed query
+    # Embed the user query to a vector
     vector = embeddings.embed_query(query)
 
-    # Construct filter
+    # Build filter for Pinecone query (by user and optional doc_ids)
     filter = {"user_id": user_id}
     if doc_ids:
         filter["doc_id"] = {"$in": doc_ids}
 
-    # Query Pinecone
+    # Query Pinecone for top matches
     response = index.query(vector=vector, filter=filter, top_k=10, include_metadata=True)
     matches = response.matches or []
 
-    # Combine matching texts
+    # Combine matching document texts into a single string
     content = "\n\n".join([m.metadata.get("text", "") for m in matches])
 
     return content

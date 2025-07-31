@@ -1,3 +1,4 @@
+# Utilities for uploading, indexing, and deleting PDF documents
 from app.database.mongo import MongoDB
 from app.database.pinecone_utils import embeddings, index
 from langchain_community.document_loaders import PyPDFLoader
@@ -9,6 +10,7 @@ import os
 import requests
 import tempfile
 
+# Upload a PDF file, split, embed, and index it, then log in MongoDB
 async def upload_pdf_util(file_path: str, user_id: str, file_name: str) -> dict:
     doc_id = str(uuid.uuid4())
     try:
@@ -21,7 +23,7 @@ async def upload_pdf_util(file_path: str, user_id: str, file_name: str) -> dict:
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         docs = splitter.split_documents(docs)
 
-        # Add proper metadata
+        # Add proper metadata to each chunk
         for doc in docs:
             doc.metadata.update({
                 "text": doc.page_content,
@@ -45,6 +47,7 @@ async def upload_pdf_util(file_path: str, user_id: str, file_name: str) -> dict:
         return {"status": "success", "document_id": doc_id}
 
     except Exception as e:
+        # Log failure in MongoDB
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
@@ -54,7 +57,7 @@ async def upload_pdf_util(file_path: str, user_id: str, file_name: str) -> dict:
         })
         return {"status": "error", "message": str(e)}
 
-
+# Download a PDF from a URL and save to a temp file
 def download_pdf(url: str) -> str:
     response = requests.get(url)
     response.raise_for_status()
@@ -62,7 +65,7 @@ def download_pdf(url: str) -> str:
         tmp_file.write(response.content)
         return tmp_file.name
 
-
+# Upload a PDF from a URL, split, embed, and index it, then log in MongoDB
 def url_upload_util(url: str, user_id: str, file_name: str) -> dict:
     file_path = download_pdf(url)
     doc_id = str(uuid.uuid4())
@@ -95,6 +98,7 @@ def url_upload_util(url: str, user_id: str, file_name: str) -> dict:
         return {"status": "success", "document_id": doc_id}
 
     except Exception as e:
+        # Log failure in MongoDB
         MongoDB.insert_document({
             "user_id": user_id,
             "doc_id": doc_id,
@@ -107,6 +111,7 @@ def url_upload_util(url: str, user_id: str, file_name: str) -> dict:
     finally:
         os.unlink(file_path)
 
+# Delete a document from MongoDB and Pinecone
 async def delete_document_util(doc_id: str, user_id: str) -> dict:
     try:
         # Remove from MongoDB

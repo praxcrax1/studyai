@@ -1,3 +1,4 @@
+# FastAPI document routes for uploading, listing, and deleting documents
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from app.auth.bearer import JWTBearer
 from app.utils.document import upload_pdf_util, url_upload_util, delete_document_util
@@ -10,6 +11,7 @@ from bson import ObjectId
 router = APIRouter()
 
 def serialize_doc(doc):
+    # Convert ObjectId fields to strings for JSON serialization
     doc = dict(doc)
     for k, v in doc.items():
         if isinstance(v, ObjectId):
@@ -21,6 +23,7 @@ async def upload_document(
     file: UploadFile = File(...),
     user_id: str = Depends(JWTBearer())
 ):
+    """Upload a PDF document for the authenticated user."""
     try:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             content = await file.read()
@@ -38,6 +41,7 @@ async def upload_from_url(
     url: str,
     user_id: str = Depends(JWTBearer())
 ):
+    """Upload a PDF document from a URL for the authenticated user."""
     try:
         parsed_url = urlparse(url)
         file_name = os.path.basename(parsed_url.path)
@@ -52,12 +56,14 @@ async def upload_from_url(
 
 @router.get("/documents")
 async def get_documents(user_id: str = Depends(JWTBearer())):
+    """Get all documents for the authenticated user."""
     docs = MongoDB.get_documents(user_id)
     docs = [serialize_doc(doc) for doc in docs] if docs else []
     return docs
 
 @router.delete("/document/{doc_id}")
 async def delete_document(doc_id: str, user_id: str = Depends(JWTBearer())):
+    """Delete a document by ID for the authenticated user."""
     try:
         result = await delete_document_util(doc_id, user_id)
         if not result["success"]:

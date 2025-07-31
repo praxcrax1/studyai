@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     GEMINI_EMBEDDING_MODEL: str = "models/embedding-001"
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
+    EXPIRATION_TIME: int = 2  # days
 
     class Config:
         env_file = ".env"

@@ -1,3 +1,4 @@
+# FastAPI chat routes for querying, deleting, and retrieving chat history
 from fastapi import APIRouter, Depends, Body, HTTPException
 from fastapi.responses import JSONResponse
 from app.auth.bearer import JWTBearer
@@ -9,18 +10,18 @@ from app.database.mongo import db
 router = APIRouter()
 
 class QueryRequest(BaseModel):
-    query: str
-    doc_ids: Optional[List[str]] = None
+    query: str  # User's chat query
+    doc_ids: Optional[List[str]] = None  # Optional list of document IDs to search
 
 @router.post("/query")
 async def chat_query(
     body: QueryRequest,
     user_id: str = Depends(JWTBearer())
 ) -> Dict[str, Any]:
+    """Handle chat query and return agent's response and tool calls."""
     try:
         agent = create_agent(user_id=user_id, doc_ids=body.doc_ids)
 
-        # If agent.invoke is async:
         response = agent.invoke({"input": body.query})
 
         answer = response.get("output", "")
@@ -45,6 +46,7 @@ async def chat_query(
 
 @router.delete("/delete")
 async def delete_chat(user_id: str = Depends(JWTBearer())):
+    """Delete all chat history for the authenticated user."""
     try:
         result = db.chat_histories.delete_many({"SessionId": str(user_id)})
         deleted_count = result.deleted_count

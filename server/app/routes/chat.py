@@ -4,6 +4,7 @@ from app.auth.bearer import JWTBearer
 from app.core.agent import create_agent
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
+from app.database.mongo import db
 
 router = APIRouter()
 
@@ -41,3 +42,28 @@ async def chat_query(
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@router.delete("/delete")
+async def delete_chat(user_id: str = Depends(JWTBearer())):
+    try:
+        result = db.chat_histories.delete_many({"SessionId": str(user_id)})
+        deleted_count = result.deleted_count
+        if deleted_count == 0:
+            return {"status": "not_found", "message": "No chat history found for user."}
+        return {"status": "success", "message": f"Deleted {deleted_count} chat history records."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/all")
+async def get_all_chats(user_id: str = Depends(JWTBearer())):
+    """
+    Get all chat history records for the authenticated user.
+    Returns a list of chat documents.
+    """
+    try:
+        chats = list(db.chat_histories.find({"SessionId": str(user_id)}))
+        for chat in chats:
+            chat["_id"] = str(chat["_id"])
+        return chats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -5,34 +5,25 @@ from langchain.agents import Tool
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from app.core.tools import rag_retriever
 from app.config import settings
+from langgraph.prebuilt import create_react_agent
+from langchain.tools import tool as lc_tool
 
-def create_agent(user_id: str, chat_history=None):
-    chat_history = chat_history or []
-    memory = ConversationBufferWindowMemory(k=10, memory_key="chat_history", return_messages=True)
-    for msg in chat_history:
-        if isinstance(msg, dict) and "human" in msg and "ai" in msg:
-            memory.save_context({"input": msg["human"]}, {"output": msg["ai"]})
-    tools = [
-        Tool(
-            name="KnowledgeRetriever",
-            func=lambda q: rag_retriever.invoke({"query": q, "user_id": user_id}),
-            description="Search user's uploaded documents"
-        ),
-    ]
-    llm = ChatGoogleGenerativeAI(
+
+def create_agent(user_id=None):
+
+    model = ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL,
         google_api_key=settings.GEMINI_API_KEY,
         temperature=0.3
     )
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """
-        You are an AI assistant that can call tools when necessary. 
-        When the user asks about their documents or needs information from their files, call KnowledgeRetriever.
-        """),
-        ("placeholder", "{chat_history}"),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}")
-    ])
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True)
-    return executor
+    def rag_retriever_with_user(query: str):
+        return rag_retriever.invoke({"query": query, "user_id": user_id})
+
+    wrapped_tool = lc_tool(rag_retriever_with_user, description="Retrieve relevant document chunks based on user query.")
+    
+    tools = [wrapped_tool]
+    llm_with_tools = model.bind_tools(tools)
+
+    agent_executor = create_react_agent(llm_with_tools, tools)
+
+    return agent_executor

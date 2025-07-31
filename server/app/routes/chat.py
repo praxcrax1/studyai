@@ -11,21 +11,18 @@ async def chat_query(
     user_id: str = Depends(JWTBearer())
 ):
     try:
-        # Retrieve chat history
-        history = MongoDB.get_chat_history(user_id)
+        agent = create_agent(user_id=user_id)
 
-        # Create agent with memory
-        agent = create_agent(user_id, history)
+        input_message = {"role": "user", "content": query}
 
-        # Process query
-        response = agent.invoke({"input": query})
-
-        # Update history
-        MongoDB.update_chat_history(user_id, {
-            "human": query,
-            "ai": response.get("output", "")
+        response = agent.invoke({
+            "messages": [input_message],
         })
 
-        return {"response": response.get("output", "")}
+        for message in response.get("messages", []):
+            if hasattr(message, "pretty_print"):
+                message.pretty_print()
+
+        return {"response": response}
     except Exception as e:
         return {"error": str(e)}

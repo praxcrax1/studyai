@@ -7,7 +7,7 @@ def rag_retriever(query: str, user_id: str, document_ids: list=None) -> str:
     vector = embeddings.embed_query(query)
     filters = {"user_id": user_id}
     if document_ids:
-        filters["document_id"] = {"$in": document_ids}
+        filters["doc_id"] = {"$in": document_ids}
     results = index.query(
         vector=vector,
         filter=filters,

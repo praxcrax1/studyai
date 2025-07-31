@@ -9,6 +9,8 @@ __pycache__/
 *.manifest
 *.spec
 
+.vscode/
+
 # --- Virtual Environment ---
 venv/
 env/

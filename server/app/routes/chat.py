@@ -17,7 +17,7 @@ async def chat_query(
         answer = response.get("output")
         tool_calls = []
 
-        for idx, (action) in enumerate(response.get("intermediate_steps", [])):
+        for idx, (action, obs) in enumerate(response.get("intermediate_steps", [])):
             tool_calls.append({"tool": action.tool, "input": action.tool_input})
 
         return {

@@ -15,3 +15,7 @@ pydantic
 python-multipart
 PyJWT
 bcrypt
+asyncio
+httpx
+asyncio
+aiofiles

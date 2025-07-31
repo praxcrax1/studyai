@@ -1,17 +1,18 @@
-# FastAPI document routes for uploading, listing, and deleting documents
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from app.auth.bearer import JWTBearer
-from app.utils.document import upload_pdf_util, url_upload_util, delete_document_util
+from app.utils.document import process_pdf_background, delete_document_util, download_pdf_async
 from app.database.mongo import MongoDB
 from urllib.parse import urlparse
-import tempfile
+from fastapi import UploadFile
+import aiofiles
+import asyncio
 import os
+import uuid
 from bson import ObjectId
 
 router = APIRouter()
 
 def serialize_doc(doc):
-    # Convert ObjectId fields to strings for JSON serialization
     doc = dict(doc)
     for k, v in doc.items():
         if isinstance(v, ObjectId):
@@ -20,46 +21,70 @@ def serialize_doc(doc):
 
 @router.post("/upload")
 async def upload_document(
-    file: UploadFile = File(...),
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(JWTBearer())
 ):
-    """Upload a PDF document for the authenticated user."""
-    try:
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            content = await file.read()
-            tmp.write(content)
-            tmp_path = tmp.name
-        
-        result = await upload_pdf_util(tmp_path, user_id, file_name=file.filename)
-        os.unlink(tmp_path)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    doc_id = str(uuid.uuid4())
+    tmp_path = f"/tmp/{doc_id}.pdf"
+    file_name = file.filename or f"upload_{doc_id}.pdf"
+
+    # Stream write
+    async with aiofiles.open(tmp_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):  # 1MB chunks
+            await f.write(chunk)
+
+    MongoDB.insert_document({
+        "user_id": user_id,
+        "doc_id": doc_id,
+        "file_name": file_name,
+        "embedding_status": "pending"
+    })
+    background_tasks.add_task(process_pdf_background, tmp_path, user_id, doc_id, file_name)
+    return {"status": "queued", "document_id": doc_id}
+
 
 @router.post("/upload_url")
 async def upload_from_url(
     url: str,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(JWTBearer())
 ):
-    """Upload a PDF document from a URL for the authenticated user."""
+    """Queue a PDF document upload from a URL for the authenticated user."""
     try:
         parsed_url = urlparse(url)
         file_name = os.path.basename(parsed_url.path)
-        
         if not file_name or not file_name.lower().endswith(".pdf"):
             raise ValueError("URL does not point to a valid PDF file")
+        doc_id = str(uuid.uuid4())
 
-        return url_upload_util(url, user_id, file_name=file_name)
+        MongoDB.insert_document({
+            "user_id": user_id,
+            "doc_id": doc_id,
+            "url": url,
+            "file_name": file_name,
+            "embedding_status": "pending"
+        })
+
+        # Sync wrapper for BackgroundTasks
+        def download_and_process():
+            # Run async download + processing inside thread-safe loop
+            asyncio.run(_download_and_process(url, user_id, doc_id, file_name))
+        background_tasks.add_task(download_and_process)
+
+        return {"status": "queued", "document_id": doc_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def _download_and_process(url: str, user_id: str, doc_id: str, file_name: str):
+    tmp_path = await download_pdf_async(url)
+    await process_pdf_background(tmp_path, user_id, doc_id, file_name)
 
 @router.get("/documents")
 async def get_documents(user_id: str = Depends(JWTBearer())):
     """Get all documents for the authenticated user."""
     docs = MongoDB.get_documents(user_id)
-    docs = [serialize_doc(doc) for doc in docs] if docs else []
-    return docs
+    return [serialize_doc(doc) for doc in docs] if docs else []
 
 @router.delete("/document/{doc_id}")
 async def delete_document(doc_id: str, user_id: str = Depends(JWTBearer())):

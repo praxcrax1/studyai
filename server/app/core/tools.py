@@ -1,19 +1,29 @@
+from typing import Annotated, Optional
 from langchain.tools import tool
+from langchain_core.tools import InjectedToolArg
 from app.database.pinecone_utils import embeddings, index
-from typing import Annotated
-from langchain_core.tools import tool, InjectedToolArg
 
 @tool
-def search_documents(query: str, user_id: Annotated[str, InjectedToolArg]):
+def search_documents(
+    query: str,
+    user_id: Annotated[str, InjectedToolArg],
+    doc_ids: Annotated[Optional[list[str]], InjectedToolArg] = None
+) -> str:
     """Retrieve relevant document chunks based on user query."""
+
     # Embed query
     vector = embeddings.embed_query(query)
 
-    # Query Pinecone
-    response = index.query(vector=vector, filter={"user_id": user_id}, top_k=5, include_metadata=True)
+    # Construct filter
+    filter = {"user_id": user_id}
+    if doc_ids:
+        filter["doc_id"] = {"$in": doc_ids}
 
+    # Query Pinecone
+    response = index.query(vector=vector, filter=filter, top_k=10, include_metadata=True)
     matches = response.matches or []
 
+    # Combine matching texts
     content = "\n\n".join([m.metadata.get("text", "") for m in matches])
 
     return content

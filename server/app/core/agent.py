@@ -7,7 +7,7 @@ from langchain_mongodb.chat_message_histories import MongoDBChatMessageHistory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 
-def create_agent(user_id=None):
+def create_agent(user_id=None, doc_ids=None):
     # LLM
     model = ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL,
@@ -16,7 +16,10 @@ def create_agent(user_id=None):
     )
 
     def search_documents_user(query: str):
-        return search_documents.invoke({"query": query, "user_id": user_id})
+        inputs = {"query": query, "user_id": user_id}
+        if doc_ids:
+            inputs["doc_ids"] = doc_ids
+        return search_documents.invoke(inputs)
 
     tools = [
         Tool(
@@ -45,29 +48,34 @@ def create_agent(user_id=None):
     prompt = ChatPromptTemplate.from_messages([
     (
         "system",
-            """You are an intelligent, thoughtful AI assistant that can reason step-by-step to provide helpful, accurate answers.
+        f"""You are an intelligent, thoughtful AI assistant that can reason step-by-step to provide helpful, accurate answers.
 
         You have access to external tools, such as a document retriever, which can provide detailed or user-specific information.
 
-        Before responding:
-        - **Think carefully and reason step-by-step** about the user's question.
-        - **Determine whether you need to use a tool** to retrieve external information (e.g., documents, user-specific context).
-        - Use the **search_documents** tool when the question requires up-to-date, factual, or document-based content.
-        - If you can answer confidently with your internal knowledge, proceed without tools.
-        - Always make your final answer clear, concise, and helpful.
+        Your decision-making process must follow this logic:
+        - **If `doc_ids` are provided**, you must always use the `search_documents` tool to try and answer the question using those specific documents.
+        - If `doc_ids` are **not** provided, evaluate whether the question requires external document-based context. Use the tool if it helps improve your answer.
+        - If you use the `search_documents` tool but it returns no relevant results, respond with:
+        - `"I don't know."` if you truly cannot answer, **or**
+        - Use your internal knowledge to give the best possible response, while clearly stating that the documents did not help.
+        - If you can answer confidently without using tools, proceed using your internal knowledge.
 
-        Always respond in Markdown format. Structure your answers with clear titles, subtitles, bullet points, and numbered lists where appropriate. Use code blocks for code, and ensure all information is well-organized and easy to read.
+        Always respond in **Markdown format**:
+        - Use clear **titles**, **subtitles**, **bullet points**, and **numbered lists** where helpful.
+        - Use **code blocks** for code.
+        - Be precise, helpful, and well-organized in all responses.
 
-        Your priority is to **think first**, **use tools only when needed**, and **answer with clarity and relevance**."""
-            ),
-            ("placeholder", "{chat_history}"),
-            ("human", "{input}"),
-            MessagesPlaceholder("agent_scratchpad")
+        Your priority is to **reason step-by-step**, **use tools when needed (especially with doc_ids)**, and **always respond clearly and concisely**.
+        """
+    ),
+        ("placeholder", "{chat_history}"),
+        ("human", "{input}"),
+        MessagesPlaceholder("agent_scratchpad")
     ])
 
 
     # Build agent
     agent = create_tool_calling_agent(llm_with_tools, tools, prompt=prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=False, return_intermediate_steps=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory, verbose=True, return_intermediate_steps=True)
 
     return agent_executor

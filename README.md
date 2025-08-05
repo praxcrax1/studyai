@@ -1,4 +1,4 @@
-# RMGX Assignment: AI-Powered Document Chat & Retrieval System
+# StudyAI: AI-Powered Document Chat & Retrieval System
 
 This project is a full-stack application that enables users to upload, manage, and chat with their documents using an advanced AI agent. The backend is built with FastAPI and integrates with MongoDB and Pinecone for storage and vector search. The AI agent (powered by Gemini) intelligently decides whether to answer from its own knowledge or to retrieve relevant information from your uploaded documents, providing step-by-step reasoning and transparent answers.
 

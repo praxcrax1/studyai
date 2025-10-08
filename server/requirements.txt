@@ -9,12 +9,12 @@ langchain-google-genai
 langchain-community
 pypdf
 requests
-passlib
+passlib[bcrypt]>=1.7.4
 python-jose
 pydantic
 python-multipart
 PyJWT
-bcrypt
+bcrypt>=4.0.1,<5.0.0
 asyncio
 httpx
 asyncio

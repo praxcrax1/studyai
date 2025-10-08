@@ -1,4 +1,4 @@
-# RMGX Assignment: AI-Powered Document Chat & Retrieval System
+# StudyAI: AI-Powered Document Chat & Retrieval System
 
 This project is a full-stack application that enables users to upload, manage, and chat with their documents using an advanced AI agent. The backend is built with FastAPI and integrates with MongoDB and Pinecone for storage and vector search. The AI agent (powered by Gemini) intelligently decides whether to answer from its own knowledge or to retrieve relevant information from your uploaded documents, providing step-by-step reasoning and transparent answers.
 
@@ -22,6 +22,87 @@ This project is a full-stack application that enables users to upload, manage, a
    - Should it combine both?
 3. **Get Answers:** The agent responds in Markdown, with clear structure, references, and transparency about its sources.
 4. **Manage Data:** Users can view, delete, and manage both their documents and chat history.
+
+---
+
+## Setup
+
+### Prerequisites
+- Python 3.8+ installed
+- MongoDB instance (local or Atlas)
+- Pinecone account for vector database
+- Google API key for Gemini model
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd RMGX-assignment
+   ```
+
+2. **Set up Python virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   cd server
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables**
+   Create a `.env` file in the `server` directory with the following variables:
+   ```
+   # MongoDB settings
+   MONGO_URI=mongodb://localhost:27017
+   MONGO_DB=document_chat
+
+   # JWT settings
+   JWT_SECRET=your_jwt_secret_key
+   JWT_ALGORITHM=HS256
+   EXPIRATION_TIME=7  # Days
+
+   # Pinecone settings
+   PINECONE_API_KEY=your_pinecone_api_key
+   PINECONE_INDEX=your_pinecone_index
+
+   # Google API settings
+   GEMINI_API_KEY=your_gemini_api_key
+   GEMINI_MODEL=gemini-pro
+   GEMINI_EMBEDDING_MODEL=models/embedding-001
+   ```
+
+5. **Run the server**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+   The server will be available at http://localhost:8000
+
+### Frontend Setup (Optional)
+
+1. **Navigate to frontend directory**
+   ```bash
+   cd ../frontend
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Create `.env.local` file**
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+   The frontend will be available at http://localhost:3000
 
 ---
 
